@@ -1,0 +1,110 @@
+---
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: aap-mcp-config
+  labels:
+    app: aap-mcp
+data:
+  BASE_URL: "https://your-aap-instance.example.com"
+---
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: aap-mcp-logs-pvc
+  labels:
+    app: aap-mcp
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+---
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: aap-mcp
+  labels:
+    app: aap-mcp
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: aap-mcp
+  template:
+    metadata:
+      labels:
+        app: aap-mcp
+    spec:
+      volumes:
+        - name: logs-volume
+          persistentVolumeClaim:
+            claimName: aap-mcp-logs-pvc
+      containers:
+        - name: aap-mcp
+          image: quay.io/jameswong/mcp-poc:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 3000
+              protocol: TCP
+          env:
+            - name: PORT
+              value: '3000'
+            - name: BASE_URL
+              value: 'https://15.223.251.237'
+          resources:
+            limits:
+              cpu: 500m
+              memory: 512Mi
+            requests:
+              cpu: 250m
+              memory: 256Mi
+          volumeMounts:
+            - name: logs-volume
+              mountPath: /app/logs
+      restartPolicy: Always
+      terminationGracePeriodSeconds: 30
+      dnsPolicy: ClusterFirst
+      securityContext: {}
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 25%
+      maxSurge: 25%
+  revisionHistoryLimit: 10
+  progressDeadlineSeconds: 600
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: aap-mcp
+  labels:
+    app: aap-mcp
+spec:
+  selector:
+    app: aap-mcp
+  ports:
+    - name: http
+      protocol: TCP
+      port: 3000
+      targetPort: 3000
+  type: ClusterIP
+---
+kind: Route
+apiVersion: route.openshift.io/v1
+metadata:
+  name: aap-mcp
+  labels:
+    app: aap-mcp
+spec:
+  to:
+    kind: Service
+    name: aap-mcp
+    weight: 100
+  port:
+    targetPort: http
+  tls:
+    termination: edge
+    insecureEdgeTerminationPolicy: Redirect
+  wildcardPolicy: None
