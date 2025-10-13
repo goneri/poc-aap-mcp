@@ -5,7 +5,7 @@ record_api_queries: true
 # Configuration for HTTPS certificate validation
 ignore-certificate-errors: true
 
-personas:
+categories:
   operator:
     - controller.activity_stream_list
     - controller.analytics_list
