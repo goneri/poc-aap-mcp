@@ -6,7 +6,7 @@ metadata:
   labels:
     app: aap-mcp
 data:
-  BASE_URL: "https://your-aap-instance.example.com"
+  BASE_URL: "https://15.223.251.237"
 ---
 kind: PersistentVolumeClaim
 apiVersion: v1
@@ -52,7 +52,11 @@ spec:
             - name: PORT
               value: '3000'
             - name: BASE_URL
-              value: 'https://15.223.251.237'
+              valueFrom:
+                configMapKeyRef:
+                  name: aap-mcp-config
+                  key: BASE_URL
+
           resources:
             limits:
               cpu: 500m
